@@ -45,9 +45,9 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
         res = [truncate(i) for i in results_rot]
 
         if target:
-            plot_bloch(res[::20]+[truncate(target)])
+            plot_bloch(clean(res[::20])+[truncate(target)])
         else:
-            plot_bloch(res[::20])
+            plot_bloch(clean(res[::20]))
 
     if target:
         # if fidelity(results_rot[-1], target) > 1:
@@ -61,11 +61,14 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
         return results_rot
     
 def simulate_circuit(transmon, circuit, noise=False, plot=True):
-    # circuit is a list of Qobjs
+    # circuit is a Qobj or a list of them
+
+    if not isinstance(circuit, list):
+        circuit=[circuit]
     
     t = np.arange(0, 2*transmon.X90_args["Γ"]*len(circuit), transmon.dt)
 
-    target = expand(calculate_target_state(circuit, transmon.ψ0), transmon.n_levels)
+    target = expand(calculate_target_state(circuit, transmon.ψ0), transmon.n_levels).unit()
 
     angles = [decompose_gate(i) for i in circuit]
     θs = [i[0] for i in angles]
@@ -77,7 +80,8 @@ def simulate_circuit(transmon, circuit, noise=False, plot=True):
     if noise:
         pulse_args = [transmon.get_noisy_args() for i in range(2*len(circuit))]
     else:
-        pulse_args = [deepcopy(transmon.X90_args).update({"φ":0}) for i in range(2*len(circuit))]
+        pulse_args = [deepcopy(transmon.X90_args) for i in range(2*len(circuit))]
+        [i.update({"φ":0}) for i in pulse_args]
 
     def H1_coeffs_partial(t, args):
     # args is a dummy dict
@@ -116,7 +120,7 @@ def simulate_circuit(transmon, circuit, noise=False, plot=True):
     if plot:
 
         print("Fidelity: " + str(f))
-        print("Leakage error: " + str(sum([np.real(expect(i, res)) for i in transmon.e_ops[2:]])))
+        print("Leakage error: " + str(sum([np.abs(expect(i, res)) for i in transmon.e_ops[2:]])))
 
         plt.plot(t, H1_coeffs_partial(t, None))
         plt.xlabel("Time")

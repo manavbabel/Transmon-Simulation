@@ -5,6 +5,7 @@ from qutip_qip import circuit
 import matplotlib.pyplot as plt 
 import numpy as np
 from IPython.display import display, Math
+from copy import deepcopy
 
 π = np.pi
 
@@ -46,27 +47,31 @@ def U(angles):
         ))
 
 # truncates states and density matrices to 2D
-def truncate(arr:Qobj):
+def truncate(arr):
+    # arr is a Qobj or a list
 
-    try:
-        # if arr is a state vector, truncates to first two elements
-        if arr.dims[1][0] == 1:
-            arr = Qobj(arr.full()[:2])
-        # if arr is a square matrix, gets upper left 2x2 square
-        else:
-            arr = Qobj([i[:2] for i in arr.full()[:2]])
-    except:
-        raise ValueError("arr must be a vector or square matrix of dimension>=2.")
+    if isinstance(arr, list):
+        return [truncate(i) for i in arr]
+    else:
+        try:
+            # if arr is a state vector, truncates to first two elements
+            if arr.dims[1][0] == 1:
+                arr = Qobj(arr.full()[:2])
+            # if arr is a square matrix, gets upper left 2x2 square
+            else:
+                arr = Qobj([i[:2] for i in arr.full()[:2]])
+        except:
+            raise ValueError("arr must be a vector or square matrix of dimension>=2.")
 
-    return arr
+        return arr
 
 def expand(arr:Qobj, D:int):
+    arr = deepcopy(arr)
     try:
         if arr.dims[1][0] == 1:
             arr = Qobj(np.pad(arr.full(), ((0,D-len(arr.full())),(0,0))))
         else:
             arr = Qobj(np.pad(arr.full(), ((0,D-len(arr.full())),(0,D-len(arr.full())))))
-
     except:
         raise ValueError("arr must be a vector or square matrix of dimension=2.")
 
@@ -188,6 +193,9 @@ def clean(results):
 
 def plot_bloch(states):
 
+    if not isinstance(states, list):
+        states = [states]
+
     for i, v in enumerate(states):
         if v.isoper and not v.isherm:
             print("State in position "+str(i)+" of input is not Hermitian.")
@@ -219,7 +227,7 @@ def generate_basis(n):
     P_clean = []
     for i in P:
         if isinstance(i, list):
-            [P_clean.append(j) for j in i]
+            [P_clean.append(Qobj(j)) for j in i]
         else:
-            P_clean.append(i)
+            P_clean.append(Qobj(i))
     return P_clean

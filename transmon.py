@@ -33,7 +33,7 @@ class Transmon:
         a = destroy(n_levels)
 
         self.e_ops = [basis(n_levels, i) * basis(n_levels, i).dag() for i in range(n_levels)]
-        self.c_ops = [np.sqrt(1/t_decay) * a, np.sqrt(1/t_dephase) * a.dag()*a]
+        self.c_ops = [np.sqrt(1/t_decay) * a, np.sqrt(1/t_dephase) *(a.dag()*a)]
 
         if RWA:
             self.H0 = Ω*a.dag()*a + 0.5*α*a.dag()*a*(a.dag()*a-1)
