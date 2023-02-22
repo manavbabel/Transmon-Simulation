@@ -4,6 +4,7 @@ from helpers import *
 from qutip import *
 from simulate import *
 from copy import deepcopy
+from RBT import RBT_circuit
 
 class PTMs:
 
@@ -61,8 +62,6 @@ class PTMs:
 
         state = deepcopy(state)
 
-        print(PTM.norm(), state.norm())
-
         if state.isket:
             state = ket2dm(state)
 
@@ -114,11 +113,38 @@ class PTMs:
 
             PTM = self.ideal_PTM("Z", φ-np.pi/2) * X90_PTM * self.ideal_PTM("Z", np.pi-θ) * X90_PTM * self.ideal_PTM("Z", λ-np.pi/2) * PTM
 
-            # PTM *= self.ideal_PTM("Z", λ-np.pi/2) * X90_PTM * self.ideal_PTM("Z", np.pi-θ) * X90_PTM * self.ideal_PTM("Z", φ-np.pi/2)
-
-            # tmp_gates = [self.ideal_PTM("Z", λ-np.pi/2),X90_PTM,self.ideal_PTM("Z", np.pi-θ),X90_PTM,self.ideal_PTM("Z", φ-np.pi/2)]
-
-            # for i in tmp_gates:
-            #     PTM *= i
-
         return PTM
+    
+    def RBT_PTM(self, transmon, X90_PTM, lengths, iterations):
+
+        transmon.ψ0 = basis(transmon.n_levels, 0)
+
+        fidelities = []
+
+        for length in lengths:
+            print("Testing length "+str(length))
+
+            tmp_fidelities = []
+
+            for iteration in range(iterations):
+                print(iteration+1, end=" ")
+
+                circ = RBT_circuit(length)
+
+                res = self.apply_PTM(self.circuit_PTM(circ, X90_PTM), transmon.ψ0)
+
+                tmp_fidelities.append(fidelity(transmon.ψ0, res))
+
+            print("", end="\n")
+
+            fidelities.append(np.mean(tmp_fidelities))
+
+        print(fidelities)
+
+        plt.plot(lengths, fidelities)
+        plt.xticks(lengths)
+        plt.xlabel("Circuit length")
+        plt.ylabel("Mean fidelity")
+        plt.show()
+
+        return fidelities
