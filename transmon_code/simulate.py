@@ -26,10 +26,6 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
             args["φ"] += np.random.normal(0, transmon.φ_noise)
         else:
             args.update({"φ": np.random.normal(0, transmon.φ_noise)})
-    
-    if transmon.ψ0.norm() > 1:
-        disp(transmon.ψ0)
-        raise ValueError("Transmon has initial state of norm "+str(transmon.ψ0.norm()))
 
     if transmon.t_decay==np.inf and transmon.t_dephase==np.inf:
         results = mesolve(H, transmon.ψ0, t, args=args, options=Options(atol=1e-13, nsteps=10000, tidy=True))
@@ -48,16 +44,14 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
         # disp(results[-1])
         # raise ValueError("Result has a norm "+str(results.states[-1].norm())+" >= 1+1e-4.")
 
-    if any([i.norm()>1+1e-4 for i in results.states]):
+    if any([i.norm()>1+1e-4 if i.isket else i.norm("fro")>1+1e-4 for i in results.states]):
         print("Max norm:")
-        print(max([i.norm() for i in results.states]))
+        print(max([i.norm() if i.isket else i.norm("fro") for i in results.states]))
 
-    results.states = [i.unit() if i.norm()>1 else i for i in results.states]
 
-    try:
-        results_rot = [rotate_z(s, transmon.Ω*t_i) for s, t_i in zip(results.states, t)]
-    except:
-        raise RuntimeError("Error in cleaning or rotating results.")
+    results.states = [i.unit(norm="fro", inplace=False) if i.isoper and i.norm("fro")>1 else i.unit() if i.isket and i.norm()>1 else i for i in results.states]
+
+    results_rot = [rotate_z(s, transmon.Ω*t_i) for s, t_i in zip(results.states, t)]
     
     if plot:
 
@@ -74,6 +68,7 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
     if target:
         if fidelity(results_rot[-1], target) >= 1:
             print(results[-1].norm())
+            print(results[-1].norm("fro"))
             print()
             raise RuntimeError("Fidelity is measured to be >= 1.")
         return results_rot, fidelity(results_rot[-1], target)
@@ -131,6 +126,7 @@ def simulate_circuit(transmon, circuit, noise=False, plot=True):
         
     H = [transmon.H0, [transmon.H1, H1_coeffs_partial]]
     results = mesolve(H, transmon.ψ0, t, c_ops=transmon.c_ops, args={})
+    results.states = [i.unit(norm="fro", inplace=False) if i.isoper and i.norm("fro")>1 else i.unit() if i.isket and i.norm()>1 else i for i in results.states]
     results_time_rotated = [rotate_z(i, transmon.Ω*t_i) for i, t_i in zip(results.states, t)]
     # results_time_rotated = clean(results_time_rotated)
     total_φ = sum(φs) + sum(λs) - sum(θs)

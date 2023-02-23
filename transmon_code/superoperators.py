@@ -20,7 +20,7 @@ class PTMs:
         # 2. get the 2D basis and expand, leaving 4 basis matrices 
 
         # first method
-        basis = [Qobj(i) for i in generate_basis(self.dim)]
+        basis = generate_basis(self.dim)
 
         # second method
         # basis = [expand(Qobj(i), self.dim) for i in generate_basis(2)]
@@ -81,7 +81,7 @@ class PTMs:
 
         transformed_basis = [gate_op*j*gate_op.dag() for j in self.basis]
 
-        return Qobj([[2*np.trace(i.dag()*j) for j in transformed_basis] for i in self.basis])
+        return Qobj([[np.trace(i.dag()*j) for j in transformed_basis] for i in self.basis])
 
     def learn_X90_PTM(self, transmon):
 
@@ -101,7 +101,7 @@ class PTMs:
 
         transmon.ψ0 = ψ0
 
-        return Qobj([[2*np.trace(i.dag()*j) for j in transformed_basis] for i in self.basis])
+        return Qobj([[np.trace(i.dag()*j) for j in transformed_basis] for i in self.basis])
 
     def circuit_PTM(self, circ, X90_PTM):
         # circ is a list of strings or Qobjs

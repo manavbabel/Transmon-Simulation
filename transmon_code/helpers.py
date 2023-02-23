@@ -236,8 +236,8 @@ def generate_basis(n):
     # uses https://math.stackexchange.com/questions/91598/what-is-a-basis-for-the-space-of-n-times-n-hermitian-matrices
     P = []
     P.append([_E(i,i,n) for i in range(n)])
-    P.append([[(_E(i,j,n)+_E(j,i,n))/np.sqrt(4) for j in range(i+1, n)] for i in range(n)])
-    P.append([[1j*(_E(i,j,n)-_E(j,i,n))/np.sqrt(4) for j in range(i+1, n)] for i in range(n)])
+    P.append([[(_E(i,j,n)+_E(j,i,n)) for j in range(i+1, n)] for i in range(n)])
+    P.append([[1j*(_E(i,j,n)-_E(j,i,n)) for j in range(i+1, n)] for i in range(n)])
     P = [i for j in P for i in j]
 
     P_clean = []
@@ -246,7 +246,11 @@ def generate_basis(n):
             [P_clean.append(j) for j in i]
         else:
             P_clean.append(i)
-    return P_clean
+
+    # normalise everything
+
+    P = [i.unit(norm="fro", inplace=False) for i in P_clean]
+    return P
 
 def calculate_coherence_error(tg, t1, t2):
 
