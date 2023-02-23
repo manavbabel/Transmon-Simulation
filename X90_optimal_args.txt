@@ -1,8 +1,10 @@
 The optimal args for an X90 gate with
 
-tr = Transmon(n_levels=8, initial_state=0, Ω=5000, α=-100, RWA=True, dt=1/1000)
-tr.X90_args = {'A': 7.449877548484732, 'Γ': 0.5024320350942441, 'ω': 5000.0, 'A_DRAG': -0.0034947574297965116}
+tr = Transmon(n_levels=8, initial_state=0, Ω=5000, α=-100, RWA=True, dt=1/10000)
+tr.X90_args = {'A': 7.435910553190071, 'Γ': 0.5032296235854182, 'ω': tr.Ω, 'A_DRAG': 0.026761873072660706}
 
-tr = Transmon(n_levels=8, initial_state=0, Ω=5000, α=-100, RWA=False, dt=1/100)
-tr.X90_args = {'A': 8.13114451863448, 'Γ': 0.4560796652353596, 'ω': 4999.8879524752065, 'A_DRAG': -0.053658733214013606}
+tr = Transmon(n_levels=8, initial_state=0, Ω=5000, α=-100, RWA=False, dt=1/10000)
+tr.X90_args = {'A': 7.348405182474674, 'Γ': 0.5002663076440171, 'ω': tr.Ω, 'A_DRAG': 0.007838355884812595}
 
+tr = Transmon(n_levels=2, initial_state=0, Ω=5000, α=-100, RWA=True, dt=1/10000)
+tr.X90_args = {'A': 7.434394312382544, 'Γ': 0.5032295274634372, 'ω': tr.Ω, 'A_DRAG': -0.00047925128386844783}

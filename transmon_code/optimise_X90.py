@@ -2,10 +2,10 @@
 
 from copy import deepcopy
 from scipy.interpolate import CubicHermiteSpline
-from helpers import *
+from transmon_code.helpers import *
 import numpy as np
 from qutip import rand_ket
-from simulate import *
+from transmon_code.simulate import *
 import matplotlib.pyplot as plt
 
 def create_X90_pulse(t, transmon, args=None, semiranges=None, plot=False, rand_init=False, N=20):

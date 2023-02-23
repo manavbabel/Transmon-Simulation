@@ -179,15 +179,16 @@ def clean(results):
         # instead, uses inbuilt function
         result_tmp = result.tidyup()
 
-        # make the diagonals all real
-        if not result_tmp.isherm:
-            for i in range(result.dims[0][0]):
-                result_tmp[i][i] = np.real(result_tmp[i][i])
+        if not result.isket:
+            # make the diagonals all real
+            if not result_tmp.isherm:
+                for i in range(result.dims[0][0]):
+                    result_tmp[i][i] = np.real(result_tmp[i][i])
 
-        if not result_tmp.isherm:
-            raise ValueError("Received result is not hermitian", result)
+            if not result_tmp.isherm:
+                raise ValueError("Received result is not hermitian", result)
 
-        cleaned_results.append(Qobj(result_tmp).unit(inplace=False, norm="tr"))
+        cleaned_results.append(Qobj(result_tmp).unit(inplace=False))
 
     return cleaned_results
 
@@ -198,8 +199,16 @@ def plot_bloch(states):
 
     for i, v in enumerate(states):
         if v.isoper and not v.isherm:
-            print("State in position "+str(i)+" of input is not Hermitian.")
-            raise ValueError(v)
+            print("Warning: state in position "+str(i)+" of input is not Hermitian.")
+            print(v)
+            mean = np.abs((np.imag(v.full()[0][1]) - np.imag(v.full()[1][0])))/2
+            if np.abs(np.imag(v.full()[0][1])-mean) > 1e-5:
+                raise ValueError("Matrix is too far from Hermitian to fix")
+            else:
+                v.full()[0][1] = np.real(v.full()[0][1]) + 1j*mean
+                v.full()[1][0] = np.real(v.full()[1][0]) - 1j*mean
+            print("Converted to Hermitian matrix:")
+            print(v)
 
     b = Bloch()
     b.make_sphere()

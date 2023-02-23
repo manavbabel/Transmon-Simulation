@@ -1,8 +1,8 @@
 # simulate a pulse
 
 from qutip import *
-from shapes import *
-from helpers import *
+from transmon_code.shapes import *
+from transmon_code.helpers import *
 import matplotlib.pyplot as plt
 import numpy as np
 from copy import deepcopy
@@ -27,10 +27,16 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
         else:
             args.update({"φ": np.random.normal(0, transmon.φ_noise)})
 
-    results = mesolve(H, transmon.ψ0, t, c_ops=transmon.c_ops, args=args)
+    if transmon.t_decay==np.inf and transmon.t_dephase==np.inf:
+        results = mesolve(H, transmon.ψ0, t, args=args, options=Options(atol=1e-17, nsteps=10000, tidy=False))
+    else:
+        results = mesolve(H, transmon.ψ0, t, c_ops=transmon.c_ops, args=args, options=Options(atol=1e-17, nsteps=10000, tidy=False))
+    
+    if results.states[-1].norm()-1 >= 1e-4:
+        print()
+        raise ValueError("Result has a norm "+str(results.states[-1].norm())+" >= 1+1e-4.")
 
     try:
-        # results = clean(results.states)
         results = results.states
         results_rot = [rotate_z(s, transmon.Ω*t_i) for s, t_i in zip(results, t)]
     except:
@@ -50,12 +56,10 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
             plot_bloch(clean(res[::20]))
 
     if target:
-        # if fidelity(results_rot[-1], target) > 1:
-        #     print(results[-1].norm())
-        #     print()
-        #     print(results_rot[-1].norm())
-        #     print()
-        #     raise RuntimeError()
+        if fidelity(results_rot[-1], target) >= 1:
+            print(results[-1].norm())
+            print()
+            raise RuntimeError("Fidelity is measured to be >= 1.")
         return results_rot, fidelity(results_rot[-1], target)
     else:
         return results_rot

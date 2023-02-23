@@ -2,9 +2,9 @@
 
 from helpers import *
 from qutip import *
-from simulate import *
+from transmon_code.simulate import *
 from copy import deepcopy
-from RBT import RBT_circuit
+from transmon_code.RBT import RBT_circuit
 
 class PTMs:
 
