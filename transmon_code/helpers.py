@@ -201,14 +201,21 @@ def plot_bloch(states):
         if v.isoper and not v.isherm:
             print("Warning: state in position "+str(i)+" of input is not Hermitian.")
             print(v)
-            mean = np.abs((np.imag(v.full()[0][1]) - np.imag(v.full()[1][0])))/2
-            if np.abs(np.imag(v.full()[0][1])-mean) > 1e-5:
+            print()
+
+            if ((v.full()-((v+v.dag())/2).full())>1e-6).any() or np.abs(v.full()[0][0]) - np.abs(np.real(v.full()[0][0])) > 1e-6:
                 raise ValueError("Matrix is too far from Hermitian to fix")
             else:
-                v.full()[0][1] = np.real(v.full()[0][1]) + 1j*mean
-                v.full()[1][0] = np.real(v.full()[1][0]) - 1j*mean
+                v_tmp = deepcopy(v.full())
+                v_tmp[0][0] = np.real(v_tmp[0][0])
+                v_tmp[1][1] = np.real(v_tmp[1][1])
+                v_tmp = Qobj(v_tmp)
+                states[i] = (v_tmp+v_tmp.dag())/2
+
             print("Converted to Hermitian matrix:")
             print(v)
+
+    states = truncate(states)
 
     b = Bloch()
     b.make_sphere()
@@ -223,20 +230,37 @@ def disp(qobj):
 def _E(a,b,n):
     ea, eb = np.zeros(n), np.zeros(n)
     ea[a], eb[b] = 1, 1
-    return ea[:, np.newaxis] * eb
+    return Qobj(ea[:, np.newaxis] * eb)
 
 def generate_basis(n):
     # uses https://math.stackexchange.com/questions/91598/what-is-a-basis-for-the-space-of-n-times-n-hermitian-matrices
     P = []
     P.append([_E(i,i,n) for i in range(n)])
-    P.append([[(_E(i,j,n)+_E(j,i,n))/np.sqrt(2) for j in range(i+1, n)] for i in range(n)])
-    P.append([[1j*(_E(i,j,n)-_E(j,i,n))/np.sqrt(2) for j in range(i+1, n)] for i in range(n)])
+    P.append([[(_E(i,j,n)+_E(j,i,n))/np.sqrt(4) for j in range(i+1, n)] for i in range(n)])
+    P.append([[1j*(_E(i,j,n)-_E(j,i,n))/np.sqrt(4) for j in range(i+1, n)] for i in range(n)])
     P = [i for j in P for i in j]
 
     P_clean = []
     for i in P:
         if isinstance(i, list):
-            [P_clean.append(Qobj(j)) for j in i]
+            [P_clean.append(j) for j in i]
         else:
-            P_clean.append(Qobj(i))
+            P_clean.append(i)
     return P_clean
+
+def calculate_coherence_error(tg, t1, t2):
+
+    # uses the paper doi/10.1126/sciadv.abl6698
+    return (3-np.exp(-tg/t1)-2*np.exp(-tg/t2))/6
+
+def break_down_errors(transmon, args, final_state, fid):
+
+    leakage_err = sum([np.abs(expect(i, final_state)) for i in transmon.e_ops[2:]])
+    coherence_err = calculate_coherence_error(args["Γ"], transmon.t_decay, transmon.t_dephase)
+
+    print("Fidelity:                    "+str(fid))
+    print("Total measured error:        "+str(1-fid))
+    print("Leakage error:               "+str(leakage_err))
+    print("Theoretical coherence error: "+str(coherence_err))
+    print("Error accounted for:         "+str(coherence_err+leakage_err))
+    print("Error unaccounted for:       "+str(1-fid-coherence_err-leakage_err))

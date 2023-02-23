@@ -1,6 +1,6 @@
 # superoperator formalism helper functions
 
-from helpers import *
+from transmon_code.helpers import *
 from qutip import *
 from transmon_code.simulate import *
 from copy import deepcopy
@@ -43,6 +43,7 @@ class PTMs:
 
     def to_vec(self, ρ:Qobj):
         # ρ is a ket or density matrix
+        ρ = deepcopy(ρ)
         if ρ.isket:
             ρ = ket2dm(ρ)
         if ρ.dims[0][0] != self.dim:
@@ -52,6 +53,7 @@ class PTMs:
 
     def to_oper(self, vec:Qobj):
         # vec is a vector from to_vec
+        vec = deepcopy(vec)
         if vec.dims[1][0] != 1:
             raise AttributeError("Error in to_oper: vec is not a vector.")
         return sum([vec.full()[i][0] * self.basis[i] for i in range(vec.dims[0][0])])
@@ -61,6 +63,7 @@ class PTMs:
         # returns a density matrix
 
         state = deepcopy(state)
+        PTM = deepcopy(PTM)
 
         if state.isket:
             state = ket2dm(state)
@@ -78,9 +81,11 @@ class PTMs:
 
         transformed_basis = [gate_op*j*gate_op.dag() for j in self.basis]
 
-        return Qobj([[np.trace(i.dag()*j) for j in transformed_basis] for i in self.basis])
+        return Qobj([[2*np.trace(i.dag()*j) for j in transformed_basis] for i in self.basis])
 
     def learn_X90_PTM(self, transmon):
+
+        transmon = deepcopy(transmon)
 
         if transmon.n_levels != self.basis[0].dims[0][0]:
             raise AttributeError("Dimension mismatch between transmon and basis.")
@@ -96,7 +101,7 @@ class PTMs:
 
         transmon.ψ0 = ψ0
 
-        return Qobj([[np.trace(i.dag()*j) for j in transformed_basis] for i in self.basis])
+        return Qobj([[2*np.trace(i.dag()*j) for j in transformed_basis] for i in self.basis])
 
     def circuit_PTM(self, circ, X90_PTM):
         # circ is a list of strings or Qobjs
