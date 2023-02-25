@@ -166,56 +166,32 @@ def rotate_z(state, θ):
         # * https://quantumcomputing.stackexchange.com/questions/23935/acting-with-a-superoperator-to-states-in-qutip
         return vector_to_operator(to_super(RZ)*operator_to_vector(state))
     
-def clean(results):
+def make_hermitian(results):
     # results is a list of Qobjs
-    # this function is necessary due to floating-point errors
 
-    cleaned_results = []
+    hermitian_results = []
 
     for result in results:
-        # round to remove floating point errors
-        result_tmp = np.round(result.full(), 5)
 
-        # instead, uses inbuilt function
-        result_tmp = result.tidyup()
+        if result.isket or (result.isoper and result.isherm):
+            hermitian_results.append(result)
+        
+        else:
+            herm_result = (result+result.dag())/2
 
-        if not result.isket:
-            # make the diagonals all real
-            if not result_tmp.isherm:
-                for i in range(result.dims[0][0]):
-                    result_tmp[i][i] = np.real(result_tmp[i][i])
+            if ((result.full()-herm_result.full())>1e-6).any() or np.abs(result.full()[0][0]) - np.abs(np.real(result.full()[0][0])) > 1e-6:
+                raise ValueError("Matrix is too far from Hermitian to fix")
+            else:
+                hermitian_results.append(herm_result)
 
-            if not result_tmp.isherm:
-                raise ValueError("Received result is not hermitian", result)
-
-        cleaned_results.append(Qobj(result_tmp).unit(inplace=False))
-
-    return cleaned_results
+    return hermitian_results
 
 def plot_bloch(states):
 
     if not isinstance(states, list):
         states = [states]
 
-    for i, v in enumerate(states):
-        if v.isoper and not v.isherm:
-            print("Warning: state in position "+str(i)+" of input is not Hermitian.")
-            print(v)
-            print()
-
-            if ((v.full()-((v+v.dag())/2).full())>1e-6).any() or np.abs(v.full()[0][0]) - np.abs(np.real(v.full()[0][0])) > 1e-6:
-                raise ValueError("Matrix is too far from Hermitian to fix")
-            else:
-                v_tmp = deepcopy(v.full())
-                v_tmp[0][0] = np.real(v_tmp[0][0])
-                v_tmp[1][1] = np.real(v_tmp[1][1])
-                v_tmp = Qobj(v_tmp)
-                states[i] = (v_tmp+v_tmp.dag())/2
-
-            print("Converted to Hermitian matrix:")
-            print(v)
-
-    states = truncate(states)
+    states = truncate(make_hermitian(states))
 
     b = Bloch()
     b.make_sphere()

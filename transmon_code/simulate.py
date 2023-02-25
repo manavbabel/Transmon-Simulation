@@ -61,17 +61,19 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
         res = [truncate(i) for i in results_rot]
 
         if target:
-            plot_bloch(clean(res[::20])+[truncate(target)])
+            plot_bloch(res[::int(len(res)/50)]+[target])
         else:
-            plot_bloch(clean(res[::20]))
+            plot_bloch(res[::int(len(res)/50)])
 
     if target:
-        if fidelity(results_rot[-1], target) >= 1:
-            print(results[-1].norm())
-            print(results[-1].norm("fro"))
-            print()
+        if fidelity(results_rot[-1], target)**2 >= 1:
+            print(fidelity(results_rot[-1], target)**2)
+            if results_rot[-1].isket:
+                print(results_rot[-1].norm())
+            else:
+                print(results_rot[-1].norm("fro"))
             raise RuntimeError("Fidelity is measured to be >= 1.")
-        return results_rot, fidelity(results_rot[-1], target)
+        return results_rot, fidelity(results_rot[-1], target)**2
     else:
         return results_rot
     
@@ -128,10 +130,10 @@ def simulate_circuit(transmon, circuit, noise=False, plot=True):
     results = mesolve(H, transmon.ψ0, t, c_ops=transmon.c_ops, args={})
     results.states = [i.unit(norm="fro", inplace=False) if i.isoper and i.norm("fro")>1 else i.unit() if i.isket and i.norm()>1 else i for i in results.states]
     results_time_rotated = [rotate_z(i, transmon.Ω*t_i) for i, t_i in zip(results.states, t)]
-    # results_time_rotated = clean(results_time_rotated)
+    # results_time_rotated = make_hermitian(results_time_rotated)
     total_φ = sum(φs) + sum(λs) - sum(θs)
     res = rotate_z(results_time_rotated[-1], total_φ)
-    fid = fidelity(res, expand(target, transmon.n_levels).unit())
+    fid = fidelity(res, expand(target, transmon.n_levels).unit())**2
 
     if plot:
 

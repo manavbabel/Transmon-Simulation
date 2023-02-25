@@ -23,8 +23,11 @@ def create_X90_pulse(t, transmon, args=None, semiranges=None, plot=False, rand_i
 
     tmp_args = deepcopy(args)
 
-    # should i optimise for ω or keep it constant at tr.Ω?
     for parameter in ["A", "Γ", "A_DRAG"]:
+
+        if parameter=="Γ" and semiranges["Γ"] == 0:
+            print("Keeping Γ constant.")
+            continue
 
         test_values = np.linspace(tmp_args[parameter]-semiranges[parameter], tmp_args[parameter]+semiranges[parameter], N)
 

@@ -7,7 +7,7 @@ from copy import deepcopy
 
 class Transmon:
 
-    def __init__(self, n_levels:int, initial_state, Ω:float=5000, α:float=-350, dt:float=1/1000, t_decay:float=np.inf, t_dephase:float=np.inf, RWA=True, A_noise=0, φ_noise=0):
+    def __init__(self, n_levels:int, initial_state=0, Ω:float=5000, α:float=-350, dt:float=1/10000, t_decay:float=np.inf, t_dephase:float=np.inf, RWA=True, A_noise=0, φ_noise=0):
         # Ω and α are in MHz
         # all times are in microseconds (OR NANOSECONDS?)
         # initial_state is an int or a Qobj
@@ -53,10 +53,8 @@ class Transmon:
         # note the Hamiltonians are divided by ħ already
 
         self.Ω = np.real(self.H0.eigenenergies()[1]-self.H0.eigenenergies()[0])
-        try:
+        if n_levels >2:
             self.α = (self.H0.eigenenergies()[2]-self.H0.eigenenergies()[1])-(self.H0.eigenenergies()[1]-self.H0.eigenenergies()[0])
-        except IndexError:
-            pass
 
         self.H1 = a + a.dag()
 

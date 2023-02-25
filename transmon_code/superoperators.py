@@ -138,7 +138,7 @@ class PTMs:
 
                 res = self.apply_PTM(self.circuit_PTM(circ, X90_PTM), transmon.ψ0)
 
-                tmp_fidelities.append(fidelity(transmon.ψ0, res))
+                tmp_fidelities.append(fidelity(transmon.ψ0, res)**2)
 
             print("", end="\n")
 
