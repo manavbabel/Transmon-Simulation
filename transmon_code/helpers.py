@@ -238,9 +238,11 @@ def break_down_errors(transmon, args, final_state, fid):
     leakage_err = sum([np.abs(expect(i, final_state)) for i in transmon.e_ops[2:]])
     coherence_err = calculate_coherence_error(args["Γ"], transmon.t_decay, transmon.t_dephase)
 
-    print("Fidelity:                    "+str(fid))
-    print("Total measured error:        "+str(1-fid))
+    print("Fidelity (f):                "+str(fid))
+    print("Measured error (1-f):        "+str(1-fid))
+    print()
     print("Leakage error:               "+str(leakage_err))
     print("Theoretical coherence error: "+str(coherence_err))
     print("Error accounted for:         "+str(coherence_err+leakage_err))
+    print()
     print("Error unaccounted for:       "+str(1-fid-coherence_err-leakage_err))

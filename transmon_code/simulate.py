@@ -28,9 +28,9 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
             args.update({"φ": np.random.normal(0, transmon.φ_noise)})
 
     if transmon.t_decay==np.inf and transmon.t_dephase==np.inf:
-        results = mesolve(H, transmon.ψ0, t, args=args, options=Options(atol=1e-13, nsteps=10000, tidy=True))
+        results = mesolve(H, transmon.ψ0, t, args=args, options=Options(atol=1e-15, nsteps=10000, tidy=True))
     else:
-        results = mesolve(H, transmon.ψ0, t, c_ops=transmon.c_ops, args=args, options=Options(atol=1e-13, nsteps=10000, tidy=True))
+        results = mesolve(H, transmon.ψ0, t, c_ops=transmon.c_ops, args=args, options=Options(atol=1e-15, nsteps=10000, tidy=True))
 
     # MAY NEED TO CHANGE THIS
     # i'm having problems with some results having norms >1
@@ -44,12 +44,11 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
         # disp(results[-1])
         # raise ValueError("Result has a norm "+str(results.states[-1].norm())+" >= 1+1e-4.")
 
-    if any([i.norm()>1+1e-4 if i.isket else i.norm("fro")>1+1e-4 for i in results.states]):
+    if any([i.norm()>1+1e-7 if i.isket else i.norm("fro")>1+1e-7 for i in results.states]):
         print("Max norm:")
         print(max([i.norm() if i.isket else i.norm("fro") for i in results.states]))
 
-
-    results.states = [i.unit(norm="fro", inplace=False) if i.isoper and i.norm("fro")>1 else i.unit() if i.isket and i.norm()>1 else i for i in results.states]
+    # results.states = [i.unit(norm="fro", inplace=False) if i.isoper and i.norm("fro")>1 else i.unit() if i.isket and i.norm()>1 else i for i in results.states]
 
     results_rot = [rotate_z(s, transmon.Ω*t_i) for s, t_i in zip(results.states, t)]
     

@@ -35,7 +35,7 @@ def create_X90_pulse(t, transmon, args=None, semiranges=None, plot=False, rand_i
 
         print("Optimising "+parameter)
 
-        target = expand(calculate_target_state("X90", transmon.ψ0), transmon.n_levels)
+        target = expand(calculate_target_state("X90", transmon.ψ0), transmon.n_levels).unit()
 
         for i, v in enumerate(test_values):
             tmp_args[parameter] = v

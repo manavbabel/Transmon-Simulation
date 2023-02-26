@@ -1,5 +1,7 @@
 # Code Outline
 
+NOTE: qutip's `fidelity` function needs to be squared to return the true fidelity!
+
 ## To-do
 
 - try using parallelisation
