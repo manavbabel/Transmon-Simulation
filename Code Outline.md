@@ -4,8 +4,6 @@ NOTE: qutip's `fidelity` function needs to be squared to return the true fidelit
 
 ## To-do
 
-- try using parallelisation
-- vary dt from 1/100 to 1/10000
 - see how truncation affects fidelity. let the n=8 parameters be the true ones, and see how final fidelity varies with no of levels
 - try and quantify error budget from the [paper](https://www.science.org/doi/10.1126/sciadv.abl6698)
   1. for each qubit, optimise the X90 pulse to at least 5 nines fidelity
@@ -14,6 +12,10 @@ NOTE: qutip's `fidelity` function needs to be squared to return the true fidelit
   4. modify A,φ noise to account for the rest of the discrepancy (next two columns)
   5. use master's [paper](//C:/Users/manav/OneDrive/Oxford/Master's%20project/Papers/CMP1902-1qerrors.pdf) from two years ago to compare with noise in actual system
 - first, need to check that the PTMs exactly replicate the pulse
+- find z error after each pulse and add a term correcting for it? so the only pulse error is in θ, not φ
+- optimise A for 01 fidelity, and then A_drag for leakage
+- optimise frequency
+- check units - does Γ correspond to width? what width is used in the paper?
 
 ## Aims
 

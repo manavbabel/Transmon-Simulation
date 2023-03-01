@@ -30,7 +30,9 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
     if transmon.t_decay==np.inf and transmon.t_dephase==np.inf:
         results = mesolve(H, transmon.ψ0, t, args=args, options=Options(atol=1e-15, nsteps=10000, tidy=True))
     else:
-        results = mesolve(H, transmon.ψ0, t, c_ops=transmon.c_ops, args=args, options=Options(atol=1e-15, nsteps=10000, tidy=True))
+        a = destroy(transmon.n_levels)
+        c_ops = [np.sqrt(1/transmon.t_decay)*a, np.sqrt(1/transmon.t_dephase)*(a.dag()*a)]
+        results = mesolve(H, transmon.ψ0, t, c_ops=c_ops, args=args, options=Options(atol=1e-15, nsteps=10000, tidy=True))
 
     # MAY NEED TO CHANGE THIS
     # i'm having problems with some results having norms >1
@@ -76,6 +78,8 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
     else:
         return results_rot
     
+# FIX THE MESOLVE HERE
+# UPDATE WITH NEW H1
 def simulate_circuit(transmon, circuit, noise=False, plot=True):
     # circuit is a Qobj or a list of them
 
@@ -126,7 +130,11 @@ def simulate_circuit(transmon, circuit, noise=False, plot=True):
             return H1_coeffs(t, tmp_args)
         
     H = [transmon.H0, [transmon.H1, H1_coeffs_partial]]
-    results = mesolve(H, transmon.ψ0, t, c_ops=transmon.c_ops, args={})
+
+    a = destroy(transmon.n_levels)
+    c_ops = [np.sqrt(1/transmon.t_decay) * a, np.sqrt(1/transmon.t_dephase) * (a.dag()*a)]
+
+    results = mesolve(H, transmon.ψ0, t, c_ops=c_ops, args={})
     results.states = [i.unit(norm="fro", inplace=False) if i.isoper and i.norm("fro")>1 else i.unit() if i.isket and i.norm()>1 else i for i in results.states]
     results_time_rotated = [rotate_z(i, transmon.Ω*t_i) for i, t_i in zip(results.states, t)]
     # results_time_rotated = make_hermitian(results_time_rotated)

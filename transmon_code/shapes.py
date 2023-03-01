@@ -18,6 +18,7 @@ def window(func):
 
 # shape functions
 # should this be a +φ or a -φ? i think it was originally +φ
+# ω is in rads per second
 sinusoid_sym = sympy.cos(ω*x+φ)
 
 # CHECK THE SHIFTS FOR THE DRAG ADDITIONS

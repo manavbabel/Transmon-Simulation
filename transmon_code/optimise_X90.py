@@ -19,14 +19,12 @@ def create_X90_pulse(t, transmon, args=None, semiranges=None, plot=False, rand_i
     if semiranges is None:
         semiranges = {"A":8, "Γ":0.4, "A_DRAG": 0.1}
 
-    # t = np.arange(0, args["Γ"]+semiranges["Γ"], transmon.dt)
-
     tmp_args = deepcopy(args)
 
-    for parameter in ["A", "Γ", "A_DRAG"]:
+    for parameter in ["A", "ω", "Γ", "A_DRAG"]:
 
-        if parameter=="Γ" and semiranges["Γ"] == 0:
-            print("Keeping Γ constant.")
+        if semiranges[parameter] == 0:
+            print("Keeping "+parameter+" constant.")
             continue
 
         test_values = np.linspace(tmp_args[parameter]-semiranges[parameter], tmp_args[parameter]+semiranges[parameter], N)
@@ -44,13 +42,18 @@ def create_X90_pulse(t, transmon, args=None, semiranges=None, plot=False, rand_i
                 for j in range(5):
                     transmon.ψ0 = expand(rand_ket(2), transmon.n_levels)
                     target = expand(calculate_target_state("X90",transmon.ψ0), transmon.n_levels).unit()
-                    _, f = simulate(transmon, args=tmp_args, target=target, noise=False, plot=False)
+                    res = simulate(transmon, args=tmp_args, noise=False, plot=False)
                     tmp_fidelities.append(f)
                 fidelities.append(np.mean(tmp_fidelities))
 
             else:
-                _, f = simulate(transmon, args=tmp_args, target=target, noise=False, plot=False)
-                fidelities.append(f)
+                res = simulate(transmon, args=tmp_args, noise=False, plot=False)
+                if parameter == "A_DRAG":
+                    fidelities.append(sum([expect(i, res[-1]) for i in transmon.e_ops[:2]]))
+                    # fidelities.append(fidelity(res[-1], target)**2)
+                else:
+                    fidelities.append(fidelity(truncate(res[-1]).unit(), truncate(target))**2)
+                    # fidelities.append(fidelity(truncate(res[-1]), truncate(target))**2)
             
             print(i+1, end=" ")            
 
@@ -71,7 +74,10 @@ def create_X90_pulse(t, transmon, args=None, semiranges=None, plot=False, rand_i
             plt.plot(test_values, fidelities)
             plt.axvline(tmp_args[parameter], c='r')
             plt.xlabel(parameter)
-            plt.ylabel("Fidelity")
+            if parameter == "A_DRAG":
+                plt.ylabel("1 - leakage")
+            else:
+                plt.ylabel("Truncated fidelity")
             plt.title("Fidelity variation with " + parameter)
             plt.show()
 
