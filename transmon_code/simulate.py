@@ -12,7 +12,7 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
     args = deepcopy(args)
 
     if t is None:
-        t = np.arange(0, args["Γ"], transmon.dt)
+        t = np.arange(0, args["τ"], transmon.dt)
 
     H = [transmon.H0, [transmon.H1, H1_coeffs]]
 
