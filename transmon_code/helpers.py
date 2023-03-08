@@ -240,15 +240,15 @@ def generate_basis(n):
     P = [i.unit(norm="fro", inplace=False) for i in P_clean]
     return P
 
-def calculate_coherence_error(tg, t1, t2):
+def calculate_coherence_error(time, t1, t2):
 
     # uses the paper doi/10.1126/sciadv.abl6698
-    return (3-np.exp(-tg/t1)-2*np.exp(-tg/t2))/6
+    return (3-np.exp(-time/t1)-2*np.exp(-time/t2))/6
 
-def break_down_errors(transmon, args, final_state, fid):
+def break_down_errors(transmon, time, final_state, fid):
 
     leakage_err = sum([np.abs(expect(i, final_state)) for i in transmon.e_ops[2:]])
-    coherence_err = calculate_coherence_error(args["τ"], transmon.t_decay, transmon.t_dephase)
+    coherence_err = calculate_coherence_error(time, transmon.t_decay, transmon.t_dephase)
 
     print("Fidelity (f):                "+str(fid))
     print("Measured error (1-f):        "+str(1-fid))

@@ -74,15 +74,59 @@ def simulate(transmon, args, target=None, noise=False, plot=False):
     else:
         return results_rot
     
-# this hasn't been touched in a while
-# defo needs updating
+def simulate_circuit2(transmon, circuit, plot=True):
+    # circuit is a Qobj or list of them
+
+    if not isinstance(circuit, list):
+        circuit = circuit
+
+    target = expand(calculate_target_state(circuit, transmon.ψ0), transmon.n_levels).unit()
+
+    state = deepcopy(transmon.ψ0)
+    H = [transmon.H0, [transmon.H1, H1_coeffs]]
+
+    args = deepcopy(transmon.X90_args)
+    args.update({"offset":0})
+
+    t = np.arange(0, args["τ"], transmon.dt)
+
+    a = destroy(transmon.n_levels)
+    c_ops = [np.sqrt(1/transmon.t_decay)*a, np.sqrt(1/transmon.t_dephase)*(a.dag()*a)]
+
+    for gate in circuit:
+        θ, φ, λ, _ = decompose_gate(gate)
+
+        state = rotate_z(state, λ - np.pi/2)
+
+        res = mesolve(H, state, t, c_ops=c_ops, args=args, options=Options(atol=1e-15, nsteps=10000, tidy=True))
+        state = rotate_z(res.states[-1], transmon.Ω*t[-1]+args["final_Z_rot"])
+        
+        state = rotate_z(state, np.pi - θ)
+
+        args["offset"] += args["τ"]
+        res = mesolve(H, state, t, c_ops=c_ops, args=args, options=Options(atol=1e-15, nsteps=10000, tidy=True))
+        state = rotate_z(res.states[-1], transmon.Ω*t[-1]+args["final_Z_rot"])
+
+        state = rotate_z(state, φ - np.pi/2)
+
+        args["offset"] += args["τ"]
+
+    fid = fidelity(state, expand(target, transmon.n_levels).unit())**2
+
+    if plot:
+        break_down_errors(transmon, 2*len(circuit)*transmon.X90_args["τ"], state, fid)
+        plot_bloch([transmon.ψ0, state, target])
+
+    return state, fid
+
+
 def simulate_circuit(transmon, circuit, noise=False, plot=True):
     # circuit is a Qobj or a list of them
 
     if not isinstance(circuit, list):
         circuit=[circuit]
     
-    t = np.arange(0, 2*transmon.X90_args["Γ"]*len(circuit), transmon.dt)
+    t = np.arange(0, transmon.X90_args["τ"], transmon.dt)
 
     target = expand(calculate_target_state(circuit, transmon.ψ0), transmon.n_levels).unit()
 
@@ -91,9 +135,10 @@ def simulate_circuit(transmon, circuit, noise=False, plot=True):
     φs = [i[1] for i in angles]
     λs = [i[2] for i in angles]
 
-    logical_gate_ends = np.cumsum([transmon.X90_args["Γ"]*2]*len(circuit))
+    logical_gate_ends = np.cumsum([transmon.X90_args["τ"]*2]*len(circuit))
 
     if noise:
+        raise NotImplementedError("Transmon noise has not been updated yet.")
         pulse_args = [transmon.get_noisy_args() for i in range(2*len(circuit))]
     else:
         pulse_args = [deepcopy(transmon.X90_args) for i in range(2*len(circuit))]
@@ -107,11 +152,11 @@ def simulate_circuit(transmon, circuit, noise=False, plot=True):
         else:
             logical_gate_number = np.clip(np.digitize(t, logical_gate_ends), 0, len(θs)-1)
 
-            offset = 2*transmon.X90_args["Γ"]*logical_gate_number
+            offset = 2*transmon.X90_args["τ"]*logical_gate_number
             φ = λs[logical_gate_number] - np.pi/2
 
-            if t-offset >= transmon.X90_args["Γ"]:
-                offset += transmon.X90_args["Γ"]
+            if t-offset >= transmon.X90_args["τ"]:
+                offset += transmon.X90_args["τ"]
                 φ += (np.pi - θs[logical_gate_number])
                 tmp_args = deepcopy(pulse_args[logical_gate_number+1])
             else:
@@ -128,12 +173,18 @@ def simulate_circuit(transmon, circuit, noise=False, plot=True):
     H = [transmon.H0, [transmon.H1, H1_coeffs_partial]]
 
     a = destroy(transmon.n_levels)
-    c_ops = [np.sqrt(1/transmon.t_decay) * a, np.sqrt(1/transmon.t_dephase) * (a.dag()*a)]
 
-    results = mesolve(H, transmon.ψ0, t, c_ops=c_ops, args={})
-    results.states = [i.unit(norm="fro", inplace=False) if i.isoper and i.norm("fro")>1 else i.unit() if i.isket and i.norm()>1 else i for i in results.states]
+    if transmon.t_decay == np.inf and transmon.t_dephase == np.inf:
+        results = mesolve(H, transmon.ψ0, t, args={})
+    else:
+        c_ops = [np.sqrt(1/transmon.t_decay) * a, np.sqrt(1/transmon.t_dephase) * (a.dag()*a)]
+        results = mesolve(H, transmon.ψ0, t, c_ops=c_ops, args={})
+
+    # results.states = [i.unit(norm="fro", inplace=False) if i.isoper and i.norm("fro")>1 else i.unit() if i.isket and i.norm()>1 else i for i in results.states]
+
     results_time_rotated = [rotate_z(i, transmon.Ω*t_i) for i, t_i in zip(results.states, t)]
     # results_time_rotated = make_hermitian(results_time_rotated)
+
     total_φ = sum(φs) + sum(λs) - sum(θs)
     res = rotate_z(results_time_rotated[-1], total_φ)
     fid = fidelity(res, expand(target, transmon.n_levels).unit())**2

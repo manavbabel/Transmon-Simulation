@@ -1,28 +1,5 @@
 The optimal args for an X90 gate with
 
-tr = Transmon(n_levels=8, initial_state=0, Ω=5000, α=-100, RWA=True, dt=1/10000)
-tr.X90_args = {'A': 7.435910553190071, 'Γ': 0.5032296235854182, 'ω': tr.Ω, 'A_DRAG': 0.026761873072660706}
+tr = Transmon(n_levels=8, initial_state=0, Ω=2*np.pi*3981, α=2*np.pi*-199)
 
-tr = Transmon(n_levels=8, initial_state=0, Ω=5000, α=-100, RWA=False, dt=1/10000)
-tr.X90_args = {'A': 7.419560020371028, 'Γ': 0.5, 'ω': 4997.839116228478, 'A_DRAG': 0.0938296585571564}
-
-tr = Transmon(n_levels=2, initial_state=0, Ω=5000, α=-100, RWA=True, dt=1/10000)
-tr.X90_args = {'A': 7.434399768336762, 'Γ': 0.5032295292962519, 'ω': tr.Ω, 'A_DRAG': -0.000933695668861461}
-
-Transmons from the paper:
-
-Qubit 0 with gate of 240ns instead of 24 ns:
-{'A': 15.173906689296555, 'Γ': 0.24, "ω":transmons[0].Ω, 'A_DRAG': -0.0029772362478571817}
-fidelity 0.97
-
-Transmon 0
-{'A': 130.19967452267184, 'Γ': 0.024, 'ω': transmons[0].Ω, 'A_DRAG': 0.0015311368432125395}
-
-Transmon 1
-{'A': 126.17330734455783, 'Γ': 0.024, 'ω': transmons[1].Ω, 'A_DRAG': 0.0009707710869245798}
-
-Transmon 2
-{'A': 130.41234230007106, 'Γ': 0.024, 'ω': transmons[2].Ω, 'A_DRAG': 0.0011131373037056153}
-
-Transmon 3
-{'A': 125.72189193327314, 'Γ': 0.024, 'ω': transmons[3].Ω, 'A_DRAG': 0.0014313122966304866}
+tr.X90_args = {'A': 1.02431707152378, 'τ': 0.024, 'λ': -1.4702485711260789, 'α': tr.α, 'ω': tr.Ω, 'final_Z_rot': 0.2555209480765517}
