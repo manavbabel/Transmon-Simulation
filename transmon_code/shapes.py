@@ -34,7 +34,7 @@ padding = 0.002
 
 def H1_coeffs(t,args):
 
-    A,τ,λ,α,ω = args["A"], args["τ"], args["λ"], args["α"], args["ω"]
+    A,τ,λ,α,ω,δ = args["A"], args["τ"], args["λ"], args["α"], args["ω"], args["δ"]
 
     offset = args.get("offset", 0)
     φ = args.get("φ", 0)
@@ -42,7 +42,7 @@ def H1_coeffs(t,args):
     Ωx = Ω(t-offset,A,τ)
     Ωy = -λ*Ωprime(t-offset,A,τ)/α
     
-    return (Ωx*np.cos(ω*t+φ)) + (Ωy*np.sin(ω*t+φ))
+    return (Ωx*np.cos((ω+δ)*t+φ)) + (Ωy*np.sin((ω+δ)*t+φ))
 
 """
 # OLDEST H1_COEFFS
