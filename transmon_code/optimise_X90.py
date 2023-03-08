@@ -8,23 +8,14 @@ from qutip import rand_ket
 from transmon_code.simulate import *
 import matplotlib.pyplot as plt
 
-def create_X90_pulse(transmon, t=None, args=None, semiranges=None, plot=False, rand_init=False, N=20):
-    # args is a dict of values for A,τg,Γ,λ,α,ω,φ with φ and offset optional and unnecessary
-    # the mandatory ones are varied to find the optimum
+def create_X90_pulse(transmon, args, semiranges, plot=False, rand_init=False, N=40):
+    # args is a dict of values for A,τ,λ with Ω,α,φ, and offset optional and unnecessary
+    # A,λ are varied to find the optimum
     
     ψ0 = transmon.ψ0
-
-    if args is None:
-        args = {"A":15, "τ":0.24, "λ":0, "α":transmon.α, "ω":transmon.Ω}
-    if semiranges is None:
-        semiranges = {"A":10, "λ":10}
-
-    if t is None:
-        t = np.arange(0, args["τ"], transmon.dt)
-
     tmp_args = deepcopy(args)
 
-    for parameter in ["A", "λ"]:
+    for parameter in ["A","λ"]:
 
         if semiranges[parameter] == 0:
             print("Keeping "+parameter+" constant.")
@@ -36,30 +27,55 @@ def create_X90_pulse(transmon, t=None, args=None, semiranges=None, plot=False, r
 
         print("Optimising "+parameter)
 
-        target = expand(calculate_target_state("X90", transmon.ψ0), transmon.n_levels).unit()
-
         for i, v in enumerate(test_values):
             tmp_args[parameter] = v
-            if rand_init:
-                tmp_fidelities = []
-                for j in range(5):
-                    transmon.ψ0 = expand(rand_ket(2), transmon.n_levels)
-                    target = expand(calculate_target_state("X90",transmon.ψ0), transmon.n_levels).unit()
-                    res = simulate(transmon, args=tmp_args, noise=False, plot=False)
-                    tmp_fidelities.append(f)
-                fidelities.append(np.mean(tmp_fidelities))
 
+            if rand_init:
+                ψ0s = [expand(rand_ket(2), transmon.n_levels) for k in range(20)]
             else:
-                res = simulate(transmon, args=tmp_args, noise=False, plot=False)
-                # fidelities.append(f)
-                if parameter == "λ":
-                    fidelities.append(sum([expect(i, res[-1]) for i in transmon.e_ops[:2]]))
-                    # fidelities.append(fidelity(res[-1], target)**2)
-                elif parameter == "A":
-                    fidelities.append(fidelity(truncate(res[-1]), truncate(target))**2)
-                    # fidelities.append(fidelity(truncate(res[-1]), truncate(target))**2)
-            
-            print(i+1, end=" ")            
+                ψ0s = [transmon.ψ0]
+
+            targets = [expand(calculate_target_state("X90",i), transmon.n_levels).unit() for i in ψ0s]
+            results = [simulate(setattr(transmon,"ψ0",i) or transmon, args=tmp_args)[-1] for i in ψ0s]
+
+            angles = [calculate_φ(targ_i) - calculate_φ(res_i) for targ_i, res_i in zip(targets, results)]
+            results = [rotate_z(res_i, ang_i) for res_i, ang_i in zip(results, angles)]
+
+            if parameter=="A":
+                fidelities.append(np.mean([fidelity(truncate(res_i).unit(), truncate(targ_i).unit())**2 for res_i, targ_i in zip(results, targets)]))
+            elif parameter=="λ":
+                fidelities.append(np.mean([sum([expect(i,res_i) for i in transmon.e_ops[:2]]) for res_i in results]))
+
+            # if rand_init:
+            #     tmp_fidelities = []
+            #     for _ in range(20):
+            #         transmon.ψ0 = expand(rand_ket(2), transmon.n_levels)
+            #         target = expand(calculate_target_state("X90",transmon.ψ0), transmon.n_levels).unit()
+            #         res = simulate(transmon, args=tmp_args, noise=False, plot=False)
+# 
+            #         ang = calculate_φ(target) - calculate_φ(res[-1])
+            #         res = [rotate_z(i, ang) for i in res]
+# 
+            #         if parameter=="A":
+            #             tmp_fidelities.append(fidelity(truncate(res[-1]).unit(), truncate(target).unit())**2)
+            #         elif parameter=="λ":
+            #             tmp_fidelities.append(sum([expect(i,res[-1]) for i in transmon.e_ops[:2]]))
+            #     fidelities.append(np.mean(tmp_fidelities))
+# 
+            # else:
+            #     target = expand(calculate_target_state("X90", transmon.ψ0), transmon.n_levels).unit()
+            #     res = simulate(transmon, args=tmp_args, noise=False, plot=False)
+# 
+            #     ang = -np.pi/2 - calculate_φ(res[-1])
+            #     res = [rotate_z(i, ang) for i in res]
+# 
+            #     if parameter=="A":
+            #         fidelities.append(fidelity(truncate(res[-1]).unit(), truncate(target).unit())**2)
+# 
+            #     elif parameter=="λ":
+            #         fidelities.append(sum([expect(i,res[-1]) for i in transmon.e_ops[:2]]))
+
+            print(i+1, end=" ")
 
         print("", end="\n")
 
@@ -80,12 +96,18 @@ def create_X90_pulse(transmon, t=None, args=None, semiranges=None, plot=False, r
             plt.xlabel(parameter)
             if parameter == "λ":
                 plt.ylabel("1 - leakage")
+                plt.title("Leakage variation with λ")
             else:
                 plt.ylabel("Truncated fidelity")
-            plt.title("Fidelity variation with " + parameter)
+                plt.title("Fidelity variation with A")
             plt.show()
 
+
     transmon.ψ0 = ψ0
+    res = simulate(transmon, args=tmp_args)
+
+    ang = -np.pi/2 - calculate_φ(res[-1])
+    args.update({"final_Z_rot":ang})    
 
     print("Optimal args:"+str(tmp_args))
-    return tmp_args 
+    return tmp_args

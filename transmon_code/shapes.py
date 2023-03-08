@@ -11,49 +11,38 @@ import numpy as np
 
 A,x,τ,Γ = sym.symbols("A,x,τ,Γ")
 
-Γ = τ/8
+Γ = τ/4
 
-Ωg = A*(sym.pi/2) * (sym.exp((-1*(x-τ/2)**2)/(2*Γ**2))-sym.exp((-1*τ**2)/(8*Γ**2))) / (sym.sqrt(2*sym.pi*Γ**2)*sym.erf(τ/(sym.sqrt(8)*Γ))-τ*sym.exp((-1*τ**2)/(8*Γ**2)))
+Ωg = A * (sym.pi/2) * (sym.exp((-1*(x-τ/2)**2)/(2*Γ**2))-sym.exp((-1*τ**2)/(8*Γ**2))) / (sym.sqrt(2*sym.pi*Γ**2)*sym.erf(τ/(sym.sqrt(8)*Γ))-τ*sym.exp((-1*τ**2)/(8*Γ**2)))
+
 Ωgprime = sym.diff(Ωg,x)
 
-Ωb = A*(0.42 - 0.5 * sym.cos(2*sym.pi*(x-τ)/τ) + 0.08 * sym.cos(4*sym.pi*(x-τ)/τ))
+padding = 0.002
+Γ = τ-2*padding
+
+Ωb = A * (50*sym.pi/(42*Γ)) * (0.42 - 0.5*sym.cos(2*sym.pi*(x-padding)/Γ) + 0.08*sym.cos(4*sym.pi*(x-padding)/Γ))
+
+Ωb = sym.Piecewise(
+    (0,x<padding),
+    (0,x>τ-padding),
+    (Ωb, True))
+
 Ωbprime = sym.diff(Ωb,x)
 
-Ω = sym.lambdify([x, A, τ], Ωb, modules=['numpy', 'math'])
-Ωprime = sym.lambdify([x, A, τ], Ωbprime, modules=['numpy', 'math'])
+Ω = sym.lambdify([x,A,τ], Ωb, modules=['numpy', 'math'])
+Ωprime = sym.lambdify([x,A,τ], Ωbprime, modules=['numpy', 'math'])
 
 def H1_coeffs(t,args):
 
-    try:
-        len(t)
-        return [H1_coeffs(i,args) for i in t]
-    except:
-        pass
+    A,τ,λ,α,ω = args["A"], args["τ"], args["λ"], args["α"], args["ω"]
 
-    if "φ" in args.keys():
-        φ = args["φ"]
-    else:
-        φ = 0
+    offset = args.get("offset", 0)
+    φ = args.get("φ", 0)
 
-    if "offset" in args.keys():
-        offset = args["offset"]
-    else:
-        offset = 0
-
-    A,τ,λ,α,ω01 = args["A"],args["τ"],args["λ"],args["α"],args["ω01"]
-
-    def Ωx(t):
-        return Ω(t,A,τ) + (λ**2-4)*Ω(t,A,τ)**3 / (8*α**2)
-
-    def Ωy(t):
-        return -1 * Ωprime(t,A,τ) / α
-
-    def ωd(t):
-        return ω01 - (λ**2-4)*Ω(t,A,τ)**2/(4*α)
-
-    return Ωx(t-offset)*np.cos(ωd(t)*t+φ) + Ωy(t-offset)*np.sin(ωd(t)*t+φ)
-
-    return Ωx(t-offset)*np.cos(ω01*t+quad(ωd,0,t)[0]) + Ωy(t-offset)*np.sin(ω01*t+quad(ωd,0,t)[0])
+    Ωx = Ω(t-offset,A,τ)
+    Ωy = -λ*Ωprime(t-offset,A,τ)/α
+    
+    return (Ωx*np.cos(ω*t+φ)) + (Ωy*np.sin(ω*t+φ))
 
 """
 # OLDEST H1_COEFFS

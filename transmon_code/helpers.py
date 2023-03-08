@@ -150,6 +150,18 @@ def decompose_gate(gate:Qobj):
 
     return np.real([θ, φ, λ, global_phase])
 
+def calculate_φ(state):
+
+    state = deepcopy(state)
+
+    if state.isket:
+        state = ket2dm(state)
+
+    state = truncate(state).unit()
+
+    b = state.full()[1][0]
+    return np.arctan2(np.imag(b), np.real(b))
+
 def rotate_z(state, θ):
     # state is a ket or density matrix
 

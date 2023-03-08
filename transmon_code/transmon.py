@@ -5,10 +5,11 @@ import numpy as np
 from qutip import *
 from copy import deepcopy
 from scipy.optimize import fsolve
+from math import isclose
 
 class Transmon:
 
-    def __init__(self, n_levels:int, initial_state=0, Ω:float=5000, α:float=-350, dt:float=1/10000, t_decay:float=np.inf, t_dephase:float=np.inf, RWA=True, A_noise=0, φ_noise=0):
+    def __init__(self, n_levels:int, initial_state=0, Ω:float=2*np.pi*5000, α:float=2*np.pi*-350, dt:float=1/20000, t_decay:float=np.inf, t_dephase:float=np.inf, RWA=False, A_noise=0, φ_noise=0):
         # Ω and α are in radians per second
         # all times are in μs
         # initial_state is an int or a Qobj
@@ -31,80 +32,61 @@ class Transmon:
 
         self.ψ0 = initial_state
 
-        a = destroy(n_levels)
-
         self.e_ops = [basis(n_levels, i) * basis(n_levels, i).dag() for i in range(n_levels)]
 
+        self.X90_args = None
+
+        a = destroy(n_levels)
+
+        # note the Hamiltonians are divided by ħ already
         if RWA:
             self.H0 = Ω*a.dag()*a + 0.5*α*a.dag()*a*(a.dag()*a-1)
         else:
-
-            Ω_actual, α_actual = self.calculate_actual()
-
-            Ec = -1*α_actual
-            Ej = -1 * (Ω_actual-α_actual)**2 / (8*α_actual)
-
-            nzpf = (Ej/(32*Ec)) ** 0.25
-            φzpf = ((2*Ec)/Ej) ** 0.25
-
-            n = 1j * nzpf * (a.dag() - a)
-            φ = φzpf * (a.dag() + a)
-
-            self.H0 = 4*Ec*n**2 - Ej*φ.cosm()
-
-        # note the Hamiltonians are divided by ħ already
-
-        # self.Ω = np.real(self.H0.eigenenergies()[1]-self.H0.eigenenergies()[0])
-        # if n_levels >2:
-            # self.α = (self.H0.eigenenergies()[2]-self.H0.eigenenergies()[1])-(self.H0.eigenenergies()[1]-self.H0.eigenenergies()[0])
+            self.H0 = self.make_H0()
 
         self.H1 = a + a.dag()
 
-        self.X90_args = None
-    
-    def calculate_actual(self):
+    def make_H0(self):
 
         a = destroy(self.n_levels)
 
-        def _calc(f, an):
-            Ec = -1*an
-            Ej = -1 * (f-an)**2 / (8*an)
+        def H0_from_freqs(Ω,α):
+            Ec = -α
+            Ej = (Ω + Ec)**2 / (2*Ec)
 
-            nzpf = (Ej/(32*Ec)) ** 0.25
-            φzpf = ((2*Ec)/Ej) ** 0.25
+            nhat = 1j * (Ej/(32*Ec))**0.25 * (a.dag()-a)
+            φhat = (2*Ec/Ej)**0.25 * (a.dag()+a)
 
-            n = 1j * nzpf * (a.dag() - a)
-            φ = φzpf * (a.dag() + a)
+            H0 = 4*Ec*nhat**2 - Ej*φhat.cosm()
+            return H0
 
-            H0 = 4*Ec*n**2 - Ej*φ.cosm()
-            eigs = np.real(H0.eigenenergies())
+        def find_actual_freqs(H0):
+            eigs = H0.eigenenergies()
+            Ω_true = np.real(eigs[1]-eigs[0])
+            α_true = np.real((eigs[2]-eigs[1])-(eigs[1]-eigs[0]))
+            return Ω_true,α_true
 
-            f2 = np.real(eigs[1]-eigs[0])
-            an2 = (eigs[2]-eigs[1])-(eigs[1]-eigs[0])
-
-            return f2, an2
-        
-        def optimise_Ω(f,an):
-            if isinstance(f, np.int32) or isinstance(f, np.float64):
-                f2, _ = _calc(f,an)
-                return f2 - self.Ω
+        def optimise_Ω(Ω_in,α_in):
+            if isinstance(Ω_in, np.int32) or isinstance(Ω_in, np.float64):
+                Ω2, _ = find_actual_freqs(H0_from_freqs(Ω_in,α_in))
+                return Ω2 - self.Ω
             else:
-                return [optimise_Ω(i,an) for i in f]
-
-        def optimise_α(an,f):
-            if isinstance(an, np.int32) or isinstance(an, np.float64):
-                _, an2 = _calc(f,an)
-                return an2 - self.α
-            else:
-                return [optimise_α(i,f) for i in an]
+                return [optimise_Ω(i,α_in) for i in Ω_in]
             
-        optimised_Ω, optimised_α = deepcopy(self.Ω), deepcopy(self.α)
-        
-        for i in range(20):
-            optimised_Ω = fsolve(optimise_Ω, optimised_Ω, args=optimised_α)[0]
-            optimised_α = fsolve(optimise_α, optimised_α, args=optimised_Ω)[0]
+        def optimise_α(α_in,Ω_in):
+            if isinstance(α_in, np.int32) or isinstance(α_in, np.float64):
+                _, α2 = find_actual_freqs(H0_from_freqs(Ω_in,α_in))
+                return α2 - self.α
+            else:
+                return [optimise_α(i,Ω_in) for i in α_in]
+            
+        Ω = fsolve(optimise_Ω, self.Ω, self.α)[0]
+        α = fsolve(optimise_α, self.α, Ω)[0]
+        for i in range(10):
+            Ω = fsolve(optimise_Ω, Ω, α)[0]
+            α = fsolve(optimise_α, α, Ω)[0]
 
-        return optimised_Ω, optimised_α
+        return H0_from_freqs(Ω,α)
 
     def get_noisy_args(self):
 

@@ -7,15 +7,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from copy import deepcopy
 
-def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
+def simulate(transmon, args, target=None, noise=False, plot=False):
 
     args = deepcopy(args)
-
-    if t is None:
-        t = np.arange(0, args["τ"], transmon.dt)
-
+    t = np.arange(0, args["τ"], transmon.dt)
     H = [transmon.H0, [transmon.H1, H1_coeffs]]
 
+    # this hasn't been touched in a while, go over it
     if noise:
         if transmon.A_noise == 0 or transmon.φ_noise == 0:
             print("Warning: either A_noise or φ_noise is zero for this transmon.")
@@ -35,36 +33,34 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
         results = mesolve(H, transmon.ψ0, t, c_ops=c_ops, args=args, options=Options(atol=1e-15, nsteps=10000, tidy=True))
 
     # MAY NEED TO CHANGE THIS
-    # i'm having problems with some results having norms >1
-    # temporary fix is to catch these and set their norms to 1 manually
-    # but this needs to be looked at more deeply
+    # i was having problems with some results having norms >1
+    # temporary fix was to catch these and set their norms to 1 manually
+    # may need to be looked at more deeply
 
-    # results.states = [i.tidyup() for i in results.states]
-    
-    # if results.states[-1].norm()-1 >= 1e-4:
-        # print()
-        # disp(results[-1])
-        # raise ValueError("Result has a norm "+str(results.states[-1].norm())+" >= 1+1e-4.")
-
-    if any([i.norm()>1+1e-7 if i.isket else i.norm("fro")>1+1e-7 for i in results.states]):
-        print("Max norm:")
-        print(max([i.norm() if i.isket else i.norm("fro") for i in results.states]))
+    # if any([i.norm()>1+1e-7 if i.isket else i.norm("fro")>1+1e-7 for i in results.states]):
+    #     print("Max norm:")
+    #     print(max([i.norm() if i.isket else i.norm("fro") for i in results.states]))
 
     # results.states = [i.unit(norm="fro", inplace=False) if i.isoper and i.norm("fro")>1 else i.unit() if i.isket and i.norm()>1 else i for i in results.states]
 
     results_rot = [rotate_z(s, transmon.Ω*t_i) for s, t_i in zip(results.states, t)]
+
+    final_Z_rot = args.get("final_Z_rot", 0)
+    results_rot = [rotate_z(i, final_Z_rot) for i in results_rot]
     
     if plot:
 
-        plt.plot(t, H1_coeffs(t, args))
+        t_tmp = np.arange(0,args["τ"], 1/100000)
+
+        plt.plot(t_tmp, H1_coeffs(t_tmp, args))
         plt.show()
 
-        res = [truncate(i) for i in results_rot]
+        # res = [truncate(i) for i in results_rot]
 
         if target:
-            plot_bloch(res[::int(len(res)/50)]+[target])
+            plot_bloch(results_rot[::int(len(results_rot)/50)]+[target])
         else:
-            plot_bloch(res[::int(len(res)/50)])
+            plot_bloch(results_rot[::int(len(results_rot)/50)])
 
     if target:
         if fidelity(results_rot[-1], target)**2 >= 1:
@@ -78,8 +74,8 @@ def simulate(transmon, args, t=None, target=None, noise=False, plot=False):
     else:
         return results_rot
     
-# FIX THE MESOLVE HERE
-# UPDATE WITH NEW H1
+# this hasn't been touched in a while
+# defo needs updating
 def simulate_circuit(transmon, circuit, noise=False, plot=True):
     # circuit is a Qobj or a list of them
 
