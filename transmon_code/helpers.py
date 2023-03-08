@@ -258,3 +258,19 @@ def break_down_errors(transmon, time, final_state, fid):
     print("Error accounted for:         "+str(coherence_err+leakage_err))
     print()
     print("Error unaccounted for:       "+str(1-fid-coherence_err-leakage_err))
+
+def make_state(n_levels, state):
+    # state is 0,1,+,-,L,R
+    match state:
+        case 0:
+            return basis(n_levels,0)
+        case 1:
+            return basis(n_levels,1)
+        case "+":
+            return (basis(n_levels,0)+basis(n_levels,1)).unit()
+        case "-":
+            return (basis(n_levels,0)-basis(n_levels,1)).unit()
+        case "L":
+            return (basis(n_levels,0)-1j*basis(n_levels,1)).unit()
+        case "R":
+            return (basis(n_levels,0)+1j*basis(n_levels,1)).unit()         

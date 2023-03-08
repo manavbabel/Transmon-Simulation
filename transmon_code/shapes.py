@@ -17,7 +17,7 @@ A,x,τ,Γ = sym.symbols("A,x,τ,Γ")
 
 Ωgprime = sym.diff(Ωg,x)
 
-padding = 0.002
+padding = 0.00
 Γ = τ-2*padding
 
 Ωb = A * (50*sym.pi/(42*Γ)) * (0.42 - 0.5*sym.cos(2*sym.pi*(x-padding)/Γ) + 0.08*sym.cos(4*sym.pi*(x-padding)/Γ))
@@ -32,6 +32,7 @@ padding = 0.002
 Ω = sym.lambdify([x,A,τ], Ωb, modules=['numpy', 'math'])
 Ωprime = sym.lambdify([x,A,τ], Ωbprime, modules=['numpy', 'math'])
 
+# with fixed detuning
 def H1_coeffs(t,args):
 
     A,τ,λ,α,ω,δ = args["A"], args["τ"], args["λ"], args["α"], args["ω"], args["δ"]
@@ -43,6 +44,34 @@ def H1_coeffs(t,args):
     Ωy = -λ*Ωprime(t-offset,A,τ)/α
     
     return (Ωx*np.cos((ω+δ)*t+φ)) + (Ωy*np.sin((ω+δ)*t+φ))
+
+# with variable detuning
+def H1_coeffs(t,args):
+
+    A,τ,λ,α,ω,δ = args["A"], args["τ"], args["λ"], args["α"], args["ω"], args["δ"]
+
+    offset = args.get("offset", 0)
+    φ = args.get("φ", 0)
+
+    Ωx = Ω(t-offset,A,τ)
+    Ωy = -λ*Ωprime(t-offset,A,τ)/α
+
+    # Z-only
+    # ωd = ω + δ**2*Ωx**2 / (4*α)
+
+    # Optimal 1st order
+    # ωd = ω + (λ**2/4-λ) * Ωx**2 / (4*α)
+
+    # original
+    # ωd = ω + (δ**2-4) * Ωx**2 / (4*α)
+
+    # constant
+    ωd = ω+δ
+
+    # custom
+    # ωd = ω + δ*Ωprime(t-offset,A,τ)/α
+    
+    return (Ωx*np.cos(ωd*t+φ)) + (Ωy*np.sin(ωd*t+φ))
 
 """
 # OLDEST H1_COEFFS

@@ -38,8 +38,11 @@ def create_X90_pulse(transmon, args, semiranges, plot=False, rand_init=False, N=
             targets = [expand(calculate_target_state("X90",i), transmon.n_levels).unit() for i in ψ0s]
             results = [simulate(setattr(transmon,"ψ0",i) or transmon, args=tmp_args)[-1] for i in ψ0s]
 
+            # if fixed detuning, put δ here?
             if parameter=="A" or parameter=="δ":
                 fidelities.append(np.mean([fidelity(truncate(res_i).unit(), truncate(targ_i).unit())**2 for res_i, targ_i in zip(results, targets)]))
+
+            # if variable detuning, put δ here?
             elif parameter=="λ":
                 fidelities.append(np.mean([sum([expect(i,res_i) for i in transmon.e_ops[:2]]) for res_i in results]))
 
