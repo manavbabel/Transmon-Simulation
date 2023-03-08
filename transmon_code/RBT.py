@@ -1,10 +1,6 @@
 # RBT gate sequence function
 # you need to implement collapse operators!!!!
 
-from random import choice as random_choice
-from qutip_qip.operations import qubit_clifford_group
-from qutip import Qobj
-import numpy as np
 from transmon_code.helpers import *
 import matplotlib.pyplot as plt
 from transmon_code.simulate import *

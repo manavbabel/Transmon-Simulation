@@ -1,12 +1,5 @@
 # helper functions and variables
 
-from qutip import *
-from qutip_qip import circuit
-import matplotlib.pyplot as plt 
-import numpy as np
-from IPython.display import display, Math
-from copy import deepcopy
-
 π = np.pi
 
 # the tuples are (θ, φ, λ)
@@ -261,10 +254,12 @@ def break_down_errors(transmon, time, final_state, fid):
 
 def make_state(n_levels, state):
     # state is 0,1,+,-,L,R
+    if not isinstance(state, str):
+        raise ValueError("State must be a string in 01+-LR.")
     match state:
-        case 0:
+        case "0":
             return basis(n_levels,0)
-        case 1:
+        case "1":
             return basis(n_levels,1)
         case "+":
             return (basis(n_levels,0)+basis(n_levels,1)).unit()

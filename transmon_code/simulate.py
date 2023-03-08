@@ -1,11 +1,7 @@
 # simulate a pulse
 
-from qutip import *
-from transmon_code.shapes import *
 from transmon_code.helpers import *
-import matplotlib.pyplot as plt
-import numpy as np
-from copy import deepcopy
+from transmon_code.shapes import *
 
 def simulate(transmon, args, target=None, noise=False, plot=False):
 

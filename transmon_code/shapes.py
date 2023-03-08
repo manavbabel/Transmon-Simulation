@@ -6,8 +6,6 @@
 # the lower, commented one, is the original
 
 # NEWER H1_COEFFS
-import sympy as sym
-import numpy as np
 
 A,x,τ,Γ = sym.symbols("A,x,τ,Γ")
 

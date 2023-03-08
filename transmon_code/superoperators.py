@@ -1,10 +1,8 @@
 # superoperator formalism helper functions
 
 from transmon_code.helpers import *
-from qutip import *
-from transmon_code.simulate import *
-from copy import deepcopy
 from transmon_code.RBT import RBT_circuit
+from transmon_code.simulate import *
 
 class PTMs:
 

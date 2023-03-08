@@ -1,13 +1,5 @@
 # create X90 pulse
 
-from copy import deepcopy
-from scipy.interpolate import CubicHermiteSpline
-from transmon_code.helpers import *
-import numpy as np
-from qutip import rand_ket
-from transmon_code.simulate import *
-import matplotlib.pyplot as plt
-
 def create_X90_pulse(transmon, args, semiranges, plot=False, rand_init=False, N=40):
     # args is a dict of values for A,τ,λ with Ω,α,φ, and offset optional and unnecessary
     # A,λ are varied to find the optimum
